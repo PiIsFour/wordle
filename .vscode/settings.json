@@ -1,0 +1,13 @@
+{
+	"editor.rulers": [
+		100,
+	],
+	"editor.formatOnSave": true,
+	"files.trimTrailingWhitespace": true,
+	"files.insertFinalNewline": true,
+	"editor.inlayHints.enabled": "offUnlessPressed",
+	"rust-analyzer.check.command": "clippy",
+	"cSpell.words": [
+		"wordle"
+	],
+}
