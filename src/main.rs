@@ -1,8 +1,8 @@
+use rand::seq::SliceRandom;
 use std::{
 	fs,
 	io::{self, BufRead},
 };
-
 use wordle::result;
 
 fn main() {
@@ -12,14 +12,15 @@ fn main() {
 	let allowed =
 		load_word_list("./data/allowed_words.txt").expect("could not find file allowed_words.txt");
 	println!("word lists {}/{}", possible.len(), allowed.len());
-	let solution = "nails";
-	let r = result::calculate_matches("hello", solution);
-	println!("{:?}", r);
-	for word in possible {
-		if r == result::calculate_matches(&word, solution) {
-			println!("{word}: {:?}", r)
-		}
-	}
+	let mut rng = rand::thread_rng();
+	let solution = possible
+		.choose(&mut rng)
+		.expect("possible words where empty");
+	println!("{:?}", solution);
+	let mut guess = String::new();
+	io::stdin().read_line(&mut guess).expect("no user input");
+	let result = result::calculate_matches(&guess, solution);
+	println!("{:?}", result);
 }
 
 fn load_word_list(path: &str) -> Result<Vec<String>, std::io::Error> {

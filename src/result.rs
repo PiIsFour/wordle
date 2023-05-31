@@ -41,7 +41,12 @@ pub fn calculate_matches(guess: &str, solution: &str) -> [Match; 5] {
 		.into_iter()
 		.map(|(k, v)| (k, v.count() as u32))
 		.collect();
-	for (result, guess) in result.iter_mut().zip(guess.chars()) {
+
+	for (result, guess) in result
+		.iter_mut()
+		.zip(guess.chars())
+		.filter(|(r, _)| **r != Match::Correct)
+	{
 		if let Some(count) = x.get_mut(&guess) {
 			if *count > 0 {
 				*result = Match::Somewhere;
@@ -73,5 +78,11 @@ mod tests {
 	fn it_has_one_match_somewhere_else() {
 		let result = calculate_matches("acccc", "bbbba");
 		assert_eq!(result, [Somewhere, None, None, None, None]);
+	}
+
+	#[test]
+	fn it_correct_has_precedence() {
+		let result = calculate_matches("axxxx", "aayyy");
+		assert_eq!(result, [Correct, None, None, None, None]);
 	}
 }
