@@ -25,9 +25,10 @@ fn main() {
 		.choose(&mut rng)
 		.expect("possible words where empty");
 	println!("{:?}", solution);
-	let check = |guess: &str| result::calculate_matches(guess, solution);
-
-	random_solver(&allowed, rng, check);
+	fn check(solution: &'_ str) -> impl Fn(&str) -> [result::Match; 5] + '_ {
+		|guess: &str| result::calculate_matches(guess, solution)
+	}
+	random_solver(&allowed, rng, check(solution));
 }
 
 fn random_solver(
