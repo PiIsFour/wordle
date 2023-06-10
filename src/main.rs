@@ -25,15 +25,16 @@ fn main() {
 		.choose(&mut rng)
 		.expect("possible words where empty");
 	println!("{:?}", solution);
-	let check = |guess: String| result::calculate_matches(&guess, solution);
+	let check = |guess: &str| result::calculate_matches(guess, solution);
 
 	random_solver(&allowed, rng, check);
 }
 
-fn random_solver<F>(allowed: &[String], mut rng: rand::rngs::ThreadRng, check: F) -> u8
-where
-	F: Fn(String) -> [result::Match; 5],
-{
+fn random_solver(
+	allowed: &[String],
+	mut rng: rand::rngs::ThreadRng,
+	check: impl Fn(&str) -> [result::Match; 5],
+) -> u8 {
 	let start = Instant::now();
 	let mut choices: Vec<String> = allowed.to_vec();
 	for i in 1..10 {
@@ -41,7 +42,7 @@ where
 			.choose(&mut rng)
 			.expect("allowed words where empty")
 			.to_owned();
-		let result = check(guess.clone());
+		let result = check(&guess);
 		if result
 			== [
 				result::Match::Correct,
