@@ -5,15 +5,38 @@ use std::{
 	io::{self, BufRead},
 	time::Instant,
 };
-use wordle::result;
+use wordle::result::{self, Match};
+
+trait ArrayAble {
+	fn to_array_5(&self) -> [char; 5];
+}
+
+impl ArrayAble for &String {
+	fn to_array_5(&self) -> [char; 5] {
+		let mut iter = self.chars();
+		[
+			iter.next().unwrap(),
+			iter.next().unwrap(),
+			iter.next().unwrap(),
+			iter.next().unwrap(),
+			iter.next().unwrap(),
+		]
+	}
+}
 
 fn main() {
 	println!("Hello, wordle!");
 	let start = Instant::now();
-	let possible = load_word_list("./data/possible_words.txt")
-		.expect("could not find file possible_words.txt");
-	let allowed =
-		load_word_list("./data/allowed_words.txt").expect("could not find file allowed_words.txt");
+	let possible: Vec<[char; 5]> = load_word_list("./data/possible_words.txt")
+		.expect("could not find file possible_words.txt")
+		.iter()
+		.map(|word| word.to_array_5())
+		.collect();
+	let allowed: Vec<[char; 5]> = load_word_list("./data/allowed_words.txt")
+		.expect("could not find file allowed_words.txt")
+		.iter()
+		.map(|word| word.to_array_5())
+		.collect();
 	println!(
 		"word lists {}/{} in {:#?}",
 		possible.len(),
@@ -25,8 +48,8 @@ fn main() {
 	let solution = possible
 		.choose(&mut rng)
 		.expect("possible words where empty");
-	println!("{:?}", solution);
-	let check = |guess: &str| result::calculate_matches(guess, solution);
+	println!("{:#?}", solution);
+	let check = |guess: &[char; 5]| result::calculate_matches(guess, solution);
 
 	let args: Vec<String> = env::args().collect();
 
@@ -42,40 +65,48 @@ fn main() {
 	};
 }
 
-fn entropy_for(allowed: &[String], word: &str) -> f64 {
-	let groups = allowed
+fn entropy_for(allowed: &[[char; 5]], word: &[char; 5]) -> f64 {
+	let sum: f64 = allowed.len() as f64;
+	let mut groups: [u16; 243] = [0; 243];
+	for s in allowed {
+		let matches = result::calculate_matches(word, s);
+		let hash = result::hash(&matches);
+		groups[hash] += 1;
+	}
+
+	groups
 		.iter()
-		.into_group_map_by(|s| result::calculate_matches(word, s));
-	let bars: Vec<f64> = groups.values().map(|list| list.len() as f64).collect();
-	let sum: f64 = bars.iter().sum();
-	let entropy = bars
-		.iter()
+		.filter(|list| **list != 0)
+		.map(|list| *list as f64)
 		.map(|size| size / sum)
 		.map(|prob| prob * -f64::log2(prob))
-		.sum();
+		.sum()
 	// println!("{:#?}: {}", entropy, sum);
-	entropy
 }
 
 fn entropy_solver(
-	allowed: &[String],
+	allowed: &[[char; 5]],
 	mut rng: rand::rngs::ThreadRng,
-	check: impl Fn(&str) -> [result::Match; 5],
+	check: impl Fn(&[char; 5]) -> [result::Match; 5],
 ) -> u8 {
-	let x = allowed.iter().map(|s| (s, entropy_for(allowed, s)));
-	for (word, entropy) in x {
-		println!("{}: {}", word, entropy);
-	}
+	let x: Vec<(&[char; 5], f64)> = allowed
+		.iter()
+		.map(|s| (s, entropy_for(allowed, s)))
+		.collect();
+	println!("Ninja Turtle Power: {}", x.len());
+	// for (word, entropy) in x {
+	// 	println!("{:#?}: {}", word, entropy);
+	// }
 	99
 }
 
 fn random_solver(
-	allowed: &[String],
+	allowed: &[[char; 5]],
 	mut rng: rand::rngs::ThreadRng,
-	check: impl Fn(&str) -> [result::Match; 5],
+	check: impl Fn(&[char; 5]) -> [result::Match; 5],
 ) -> u8 {
 	let start = Instant::now();
-	let mut choices: Vec<String> = allowed.to_vec();
+	let mut choices: Vec<[char; 5]> = allowed.to_vec();
 	for i in 1..10 {
 		let guess = choices
 			.choose(&mut rng)
@@ -91,7 +122,7 @@ fn random_solver(
 				result::Match::Correct,
 			] {
 			println!(
-				"solved after {} tries({:#?}): {}",
+				"solved after {} tries({:#?}): {:#?}",
 				i,
 				start.elapsed(),
 				guess
